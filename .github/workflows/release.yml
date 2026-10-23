@@ -90,6 +90,11 @@ jobs:
       # Attaches to the tag's release, creating it if the owner has not drafted one. Never
       # --clobber: a name already on the release stays as it is, since SHA256SUMS.sig may
       # already vouch for it. The files attached are the ones SHA256SUMS names, and SHA256SUMS.
+      #
+      # A tag with a `-` in it is a pre-release (`vX.Y.Z-dev.N`, `vX.Y.Z-rc.N`, kotton-protocol's
+      # VERSIONING.md), and its release is marked as one, whether this creates it or the owner
+      # drafted it: a snapshot promises nothing and a candidate is not yet the release, so
+      # neither may show as the latest. tools/check.sh holds that both paths say so.
       - name: Attach the archives and SHA256SUMS to the release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -100,10 +105,15 @@ jobs:
           ls -l
           sha256sum -c SHA256SUMS
           files="$(awk '{ print $2 }' SHA256SUMS | tr -d '*' | tr '\n' ' ')SHA256SUMS"
+          prerelease=""
+          case "$TAG" in *-*) prerelease="--prerelease" ;; esac
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
             gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" $files
+            if [ -n "$prerelease" ]; then
+              gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --prerelease
+            fi
           else
-            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --title "$TAG" \
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag $prerelease --title "$TAG" \
               --notes "The archives release.lock names at $TAG, each fetched from its component's own release and checked against that release's SHA256SUMS, with one SHA256SUMS over the set. SHA256SUMS.sig is attached by the owner, signed off GitHub; until it is, install.sh installs nothing from this release." \
               $files
           fi

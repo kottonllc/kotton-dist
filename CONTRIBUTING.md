@@ -12,8 +12,9 @@ git clone https://github.com/kottonllc/kotton-dist && cd kotton-dist
 sh tools/check.sh
 ```
 
-`tools/check.sh` runs `sh -n` over every script and refuses an archive `release.lock` names and
-the release workflow does not, or the other way round; `.github/workflows/lint.yml` runs it on
+`tools/check.sh` runs `sh -n` over every script, refuses an archive `release.lock` names and
+the release workflow does not, or the other way round, and refuses a release workflow that does
+not mark a pre-release tag's release as one; `.github/workflows/lint.yml` runs it on
 every pull request. Every script here is POSIX `sh`, and nothing here is built: a change is
 proved by running what it changes, on the machine it is for, and saying in the pull request what
 ran and what it printed.
