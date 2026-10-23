@@ -1,6 +1,7 @@
 # The distribution's gate, on every pull request and on nothing else: tools/check.sh, which
 # runs `sh -n` over every script and refuses an archive release.lock names and the release
-# workflow's ARCHIVES does not, or the other way round. It reads the tree; it is handed no
+# workflow's ARCHIVES does not, or the other way round, and a release workflow that does not
+# mark a pre-release tag's release as one. It reads the tree; it is handed no
 # token beyond the read-only default, and the checkout keeps none on disk.
 name: lint
 on:

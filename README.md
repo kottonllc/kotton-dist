@@ -178,8 +178,9 @@ archive carries, `infra/release/README.txt`; and the key a release's signature i
 against, `infra/release/allowed_signers`. A release here is a `v*` tag whose `release.lock` says
 which version of each archive goes together: the tag's release carries those archives, fetched
 from each component's own release, and one `SHA256SUMS` over them, signed by the owner on their
-own machine. `install.sh` unpacks nothing until the release's signature checks against that
-key as the tag holds it. It holds no Rust: the system, the daemons and the command line it
+own machine; a tag with a `-` in it, a snapshot (`vX.Y.Z-dev.N`) or a candidate (`vX.Y.Z-rc.N`),
+is marked on the releases page as a pre-release, never as the latest. `install.sh` unpacks
+nothing until the release's signature checks against that key as the tag holds it. It holds no Rust: the system, the daemons and the command line it
 installs are built and tagged in [kottonllc/kotton](https://github.com/kottonllc/kotton), and
 released here. Your things are yours because only you
 hold the keys they are sealed under: you can put them on any host, and grant them to whom you

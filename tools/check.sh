@@ -13,7 +13,11 @@
 #     <commit>`, with a `v*` tag and a full commit, or `-` for both (not released yet), and an
 #     archive named twice for one platform;
 #   - an archive release.lock names and the ARCHIVES line of .github/workflows/release.yml does
-#     not, or the other way round, or a workflow without exactly one ARCHIVES line.
+#     not, or the other way round, or a workflow without exactly one ARCHIVES line;
+#   - a release workflow that does not mark a pre-release tag's release as one: a tag with a
+#     `-` in it (`vX.Y.Z-dev.N`, `vX.Y.Z-rc.N`, kotton-protocol's VERSIONING.md) must set
+#     `--prerelease`, and both the `gh release create` that makes the release and the
+#     `gh release edit` after an upload to a release the owner drafted must pass it.
 #
 # The release workflow holds the same equality again at the tag (tools/assemble.sh), so a lock
 # that drifted after this ran is refused before anything is attached.
@@ -85,6 +89,24 @@ else
         done
         echo "check: release.lock names $(echo $locked); the release workflow ships $shipped"
     fi
+fi
+
+# 4. A pre-release tag's release is marked as one, on both of the workflow's paths.
+if [ -f "$workflow" ]; then
+    pre=0
+    grep -qF 'case "$TAG" in *-*) prerelease="--prerelease" ;; esac' "$workflow" || {
+        say ".github/workflows/release.yml does not set --prerelease for a tag with a '-' in it"
+        pre=1
+    }
+    grep -q '^[[:space:]]*gh release create .*\$prerelease' "$workflow" || {
+        say ".github/workflows/release.yml's gh release create does not pass \$prerelease"
+        pre=1
+    }
+    grep -q '^[[:space:]]*gh release edit .*--prerelease' "$workflow" || {
+        say ".github/workflows/release.yml does not mark a release the owner drafted as a pre-release (gh release edit --prerelease)"
+        pre=1
+    }
+    [ "$pre" = 1 ] || echo "check: the release workflow marks a pre-release tag's release as one"
 fi
 
 [ "$bad" = 0 ] || exit 1
