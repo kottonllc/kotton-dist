@@ -17,7 +17,15 @@
 #   - a release workflow that does not mark a pre-release tag's release as one: a tag with a
 #     `-` in it (`vX.Y.Z-dev.N`, `vX.Y.Z-rc.N`, kotton-protocol's VERSIONING.md) must set
 #     `--prerelease`, and both the `gh release create` that makes the release and the
-#     `gh release edit` after an upload to a release the owner drafted must pass it.
+#     `gh release edit` after an upload to a release the owner drafted must pass it;
+#   - a README that installs from anywhere but this repository: its nine lines' install line
+#     must clone https://github.com/kottonllc/kotton-dist at `<tag>` and run
+#     `sh kotton-dist/install.sh`; the host's two lines (what `kotton mint host` prints) must
+#     be in a fenced block, the clone alone and then `sh kotton-dist/install.sh --kind host`
+#     with the keys; and every `git clone` line and every install.sh run (`sh`, `bash` or `.`
+#     followed by a path ending in install.sh) anywhere in it
+#     must name that same repository and that same installer, so a line still cloning
+#     `kottonllc/kotton` or running `kotton/install.sh` is refused.
 #
 # The release workflow holds the same equality again at the tag (tools/assemble.sh), so a lock
 # that drifted after this ran is refused before anything is attached.
@@ -107,6 +115,44 @@ if [ -f "$workflow" ]; then
         pre=1
     }
     [ "$pre" = 1 ] || echo "check: the release workflow marks a pre-release tag's release as one"
+fi
+
+# 5. The README installs from this repository on every line: the nine lines' install line and
+# the host's two lines clone the same repository and run the same installer, this one's.
+readme=$root/README.md
+url=https://github.com/kottonllc/kotton-dist
+installer=kotton-dist/install.sh
+clone="git clone --depth 1 --branch <tag> $url"
+if [ ! -f "$readme" ]; then
+    say "there is no README.md"
+else
+    rd=0
+    fenced=$(awk '/^[[:space:]]*```/ { f = !f; next } f { sub(/^[[:space:]]+/, ""); sub(/[[:space:]]+$/, ""); print }' "$readme")
+    printf '%s\n' "$fenced" | grep -qxF "$clone && sh $installer" || {
+        say "README.md's nine lines do not install with '$clone && sh $installer'"
+        rd=1
+    }
+    printf '%s\n' "$fenced" | grep -qxF "$clone" || {
+        say "README.md's host section does not show '$clone', the first line kotton mint host prints"
+        rd=1
+    }
+    printf '%s\n' "$fenced" | grep -qxF "KOTTON_OPERATOR_KEY_RELAY=<relay key> KOTTON_OPERATOR_KEY_VAULT=<vault key> sh $installer --kind host" || {
+        say "README.md's host section does not show 'KOTTON_OPERATOR_KEY_RELAY=<relay key> KOTTON_OPERATOR_KEY_VAULT=<vault key> sh $installer --kind host', the second line kotton mint host prints"
+        rd=1
+    }
+    # Every clone and every installer, fenced or in prose, is this repository's.
+    wrong=$(grep -n 'git clone' "$readme" | while IFS= read -r l; do
+        case "${l#*git clone}" in
+            *" $url" | *" $url "* | *" $url\`"*) ;;
+            *) echo "check: README.md:${l%%:*} clones something other than $url: '${l#*:}'" >&2; echo x ;;
+        esac
+    done)
+    wrong=$wrong$(grep -noE '(^|[^A-Za-z0-9_./-])(sh|bash|\.) +[^ `]*install\.sh' "$readme" | while IFS= read -r l; do
+        run=$(printf '%s\n' "${l#*:}" | sed -E 's/^[^A-Za-z.]*//')
+        [ "$run" = "sh $installer" ] || { echo "check: README.md:${l%%:*} runs '$run', not this repository's 'sh $installer'" >&2; echo x; }
+    done)
+    [ -z "$wrong" ] || { rd=1; bad=1; }
+    [ "$rd" = 1 ] || echo "check: README.md clones $url and runs $installer, in the nine lines and on the host"
 fi
 
 [ "$bad" = 0 ] || exit 1

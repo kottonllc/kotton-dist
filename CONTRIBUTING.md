@@ -13,8 +13,10 @@ sh tools/check.sh
 ```
 
 `tools/check.sh` runs `sh -n` over every script, refuses an archive `release.lock` names and
-the release workflow does not, or the other way round, and refuses a release workflow that does
-not mark a pre-release tag's release as one; `.github/workflows/lint.yml` runs it on
+the release workflow does not, or the other way round, refuses a release workflow that does
+not mark a pre-release tag's release as one, and refuses a README whose nine lines or host lines
+clone anything but this repository or run anything but its `install.sh` (a line still naming
+`kottonllc/kotton` or `kotton/install.sh`); `.github/workflows/lint.yml` runs it on
 every pull request. Every script here is POSIX `sh`, and nothing here is built: a change is
 proved by running what it changes, on the machine it is for, and saying in the pull request what
 ran and what it printed.

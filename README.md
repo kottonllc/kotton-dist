@@ -9,7 +9,7 @@ of your own, and recovery. Each comment says what happens when you press Enter.
 # kotton-start into ~/.local/bin. No account.
 git clone --depth 1 --branch <tag> https://github.com/kottonllc/kotton-dist && sh kotton-dist/install.sh
 
-# Starts the daemon in this terminal, and on a machine with a GPU the window too.
+# Starts the daemon in this terminal.
 # Leave it running (Ctrl-C stops it) and type the rest in another terminal.
 kotton-start
 
@@ -82,11 +82,15 @@ It makes two operator keys in your own store, one for the relay and one for the 
 prints the two lines the host runs, with the public half of each key in the second:
 
 ```text
-git clone --depth 1 --branch <tag> https://github.com/kottonllc/kotton
-KOTTON_OPERATOR_KEY_RELAY=<relay key> KOTTON_OPERATOR_KEY_VAULT=<vault key> sh kotton/install.sh --kind host
+git clone --depth 1 --branch <tag> https://github.com/kottonllc/kotton-dist
+KOTTON_OPERATOR_KEY_RELAY=<relay key> KOTTON_OPERATOR_KEY_VAULT=<vault key> sh kotton-dist/install.sh --kind host
 ```
 
-`<tag>` is the newest release your desktop knows, and the keys are 64 hex characters each. The
+`<tag>` is a release's tag from this repository's
+[releases page](https://github.com/kottonllc/kotton-dist/releases), as in the first of the nine
+lines. Your desktop prints `<tag>` as it is and says to look one up there: it was built from
+kottonllc/kotton and knows that repository's tags, not this one's. The keys are 64 hex
+characters each. The
 secrets never leave your store. A relay and a vault are two instances under two keys even on
 one machine, so one key never stands for both. With no `--rule` the relay admits *only my
 devices*; `--rule people_i_invite` or `--rule anyone` gives it another first rule.
@@ -132,9 +136,9 @@ The line confers nothing: it says where each instance is and which key to expect
 
 **Behind NAT or on a floating IP**, devices dial an address the ssh session did not arrive at.
 Give that one in front of the second line —
-`KOTTON_PUBLIC_ADDR=<ip> KOTTON_OPERATOR_KEY_RELAY=<relay key> KOTTON_OPERATOR_KEY_VAULT=<vault key> sh kotton/install.sh --kind host`
+`KOTTON_PUBLIC_ADDR=<ip> KOTTON_OPERATOR_KEY_RELAY=<relay key> KOTTON_OPERATOR_KEY_VAULT=<vault key> sh kotton-dist/install.sh --kind host`
 — and it asks nothing. With no terminal to ask at, it writes no address, says so, and prints the
-command that writes it, `KOTTON_PUBLIC_ADDR=<ip> sh kotton/install.sh --kind host`, run from
+command that writes it, `KOTTON_PUBLIC_ADDR=<ip> sh kotton-dist/install.sh --kind host`, run from
 the same directory. That fills the empty address in both settings and restarts both, and each
 instance prints its line again at that start, to the journal:
 
