@@ -1,0 +1,19 @@
+# The distribution's gate, on every pull request and on nothing else: tools/check.sh, which
+# runs `sh -n` over every script and refuses an archive release.lock names and the release
+# workflow's ARCHIVES does not, or the other way round. It reads the tree; it is handed no
+# token beyond the read-only default, and the checkout keeps none on disk.
+name: lint
+on:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: every script parses, and the lock and the release workflow name the same archives
+        run: sh tools/check.sh

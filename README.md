@@ -7,7 +7,7 @@ of your own, and recovery. Each comment says what happens when you press Enter.
 # Downloads the release archive, checks its signature against the key in the
 # checkout, installs it under ~/.local/opt/kotton and links kotton and
 # kotton-start into ~/.local/bin. No account.
-git clone --depth 1 --branch <tag> https://github.com/kottonllc/kotton && sh kotton/install.sh
+git clone --depth 1 --branch <tag> https://github.com/kottonllc/kotton-dist && sh kotton-dist/install.sh
 
 # Starts the daemon in this terminal, and on a machine with a GPU the window too.
 # Leave it running (Ctrl-C stops it) and type the rest in another terminal.
@@ -44,7 +44,7 @@ kotton id add-recovery alice
 kotton id recover
 ```
 
-`<tag>` is the release's tag on the [releases page](https://github.com/kottonllc/kotton/releases).
+`<tag>` is the release's tag on the [releases page](https://github.com/kottonllc/kotton-dist/releases).
 Every command takes `--help`.
 
 ## The host's side
@@ -175,10 +175,13 @@ This repository is Kotton's distribution: what a person installs. It holds `inst
 one the first line runs; the installers it hands a host, `infra/release/install-host.sh` and
 `infra/release/install-server.sh`; the launcher, `infra/release/kotton-start`; the note an
 archive carries, `infra/release/README.txt`; and the key a release's signature is checked
-against, `infra/release/allowed_signers`. `install.sh` unpacks nothing until the release's
-signature checks against that key as the tag holds it. It holds no Rust: the system, the
-daemons and the command line it installs are built and released from
-[kottonllc/kotton](https://github.com/kottonllc/kotton). Your things are yours because only you
+against, `infra/release/allowed_signers`. A release here is a `v*` tag whose `release.lock` says
+which version of each archive goes together: the tag's release carries those archives, fetched
+from each component's own release, and one `SHA256SUMS` over them, signed by the owner on their
+own machine. `install.sh` unpacks nothing until the release's signature checks against that
+key as the tag holds it. It holds no Rust: the system, the daemons and the command line it
+installs are built and tagged in [kottonllc/kotton](https://github.com/kottonllc/kotton), and
+released here. Your things are yours because only you
 hold the keys they are sealed under: you can put them on any host, and grant them to whom you
 choose.
 

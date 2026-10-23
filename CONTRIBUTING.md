@@ -9,12 +9,14 @@ a change to it works.
 
 ```sh
 git clone https://github.com/kottonllc/kotton-dist && cd kotton-dist
-for f in install.sh infra/release/*.sh infra/release/kotton-start; do sh -n "$f" || echo "$f"; done
+sh tools/check.sh
 ```
 
-Every script here is POSIX `sh`, and nothing here is built: a change is proved by running what
-it changes, on the machine it is for, and saying in the pull request what ran and what it
-printed.
+`tools/check.sh` runs `sh -n` over every script and refuses an archive `release.lock` names and
+the release workflow does not, or the other way round; `.github/workflows/lint.yml` runs it on
+every pull request. Every script here is POSIX `sh`, and nothing here is built: a change is
+proved by running what it changes, on the machine it is for, and saying in the pull request what
+ran and what it printed.
 
 ## The loop
 
