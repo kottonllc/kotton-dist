@@ -25,8 +25,8 @@
 # can write, which is used for nothing but this repository's release for the tag.
 #
 # Every `uses:` is pinned to a full commit with its version in a trailing comment, the same
-# commits kotton's release workflow resolved on 2026-09-29. Do not move them back to tags: a
-# moved tag runs someone else's code with this job's token.
+# commits kotton's release workflow pins. Do not move them back to tags: a moved tag runs
+# someone else's code with this job's token.
 #   actions/checkout          11d5960a  -> v4.4.0
 #   actions/upload-artifact   ea165f8d  -> v4.6.2
 #   actions/download-artifact d3f86a10  -> v4.3.0

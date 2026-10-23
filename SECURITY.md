@@ -36,6 +36,17 @@ The areas we care most about, in priority order:
 - Denial-of-service attacks against a local daemon with no network exposure
 - Issues that require physical access to an already-unlocked device
 
+## What a signature here certifies
+
+`install.sh` trusts one thing: `SHA256SUMS.sig`, checked against `infra/release/allowed_signers`
+as the tag holds it. Before signing a release's `SHA256SUMS`, the owner confirms that every
+`repository` field of `release.lock` at the tag names a kotton repository (`kottonllc/…`), and
+that each line of `SHA256SUMS` matches that component's own published `SHA256SUMS` at the
+locked tag, or the line the owner's own build of that commit printed. The owner then signs on
+their own machine with a key whose public half is in `allowed_signers`, never on GitHub. The
+component sums the release workflow fetches over TLS are a cross-check, not the root of trust:
+an archive that matches them but that the owner has not signed installs nothing.
+
 ## What We Commit To
 
 - We will not take legal action against researchers acting in good faith
