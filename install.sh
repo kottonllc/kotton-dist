@@ -2,19 +2,20 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Install Kotton from the release this checkout is at.
 #
-#   git clone --depth 1 --branch <tag> https://github.com/kottonllc/kotton && sh kotton/install.sh
+#   git clone --depth 1 --branch <tag> https://github.com/kottonllc/kotton-dist && sh kotton-dist/install.sh
 #
-#   sh kotton/install.sh                  this machine's desktop: into ~/.local/opt/kotton,
-#                                         kotton and kotton-start linked into ~/.local/bin
-#   sh kotton/install.sh --kind relay     as root, on a host: the relay, under systemd
-#   sh kotton/install.sh --kind vault     as root, on a host: the vault, under systemd
-#   sh kotton/install.sh --kind host      as root, on a host: the relay and the vault, both
-#   sh kotton/install.sh --dry-run        say what it would download, and download nothing
+#   sh kotton-dist/install.sh                  this machine's desktop: into ~/.local/opt/kotton,
+#                                              kotton and kotton-start linked into ~/.local/bin
+#   sh kotton-dist/install.sh --kind relay     as root, on a host: the relay, under systemd
+#   sh kotton-dist/install.sh --kind vault     as root, on a host: the vault, under systemd
+#   sh kotton-dist/install.sh --kind host      as root, on a host: the relay and the vault, both
+#   sh kotton-dist/install.sh --dry-run        say what it would download, and download nothing
 #
 # What it does, in order, and it stops at the first thing that is not so:
 #
-#   1. reads the release from the checkout: the `v*` tag HEAD is at, and the commit that
-#      tag names, whose first twelve characters name the release's archives;
+#   1. reads the release from the checkout: the `v*` tag HEAD is at, and the line of
+#      release.lock as the tag holds it for this machine's archive, whose commit's first twelve
+#      characters name the archive (the component's commit it was built from, not this one's);
 #   2. downloads SHA256SUMS and SHA256SUMS.sig from that tag's release, and checks the
 #      signature with `ssh-keygen -Y verify` against infra/release/allowed_signers as the
 #      tag holds it — read from git, never from the working copy and never from a download;
@@ -31,7 +32,7 @@
 # KOTTON_PUBLIC_ADDR for a host. It is also told how it was reached (KOTTON_INSTALL_COMMAND), so
 # a line it prints to run again names this script, which stays, and not its own path in the
 # directory this one removes.
-# KOTTON_RELEASE_BASE replaces https://github.com/kottonllc/kotton/releases/download, under
+# KOTTON_RELEASE_BASE replaces https://github.com/kottonllc/kotton-dist/releases/download, under
 # which the release is <base>/<tag>/; it moves where the bytes come from and nothing else,
 # since the key that judges them is the checkout's.
 #
@@ -93,15 +94,25 @@ if ! said=$(git -C "$here" rev-parse --show-toplevel 2>&1); then
     refuse "git cannot read the checkout at $here: $said"
 fi
 tag=$(git -C "$here" describe --tags --exact-match --match 'v*' HEAD 2>/dev/null) ||
-    refuse "this checkout is not at a release tag, so there is no release to install — clone one: git clone --depth 1 --branch <tag> https://github.com/kottonllc/kotton"
-rev=$(git -C "$here" rev-parse "$tag^{commit}" | cut -c1-12)
+    refuse "this checkout is not at a release tag, so there is no release to install — clone one: git clone --depth 1 --branch <tag> https://github.com/kottonllc/kotton-dist"
 
 os=$(uname -s)
 [ "$os" = Linux ] || refuse "a release is built for Linux, and this is $os"
 arch=$(uname -m)
+# Which archive, from the lock as the tag holds it — read from git, as the key is: the line
+# naming this kind and this platform, whose commit names the archive.
+lock=release.lock
+locked=$(git -C "$here" show "$tag:$lock" 2>/dev/null) ||
+    refuse "$tag holds no $lock, so it names no archive to install"
+commit=$(printf '%s\n' "$locked" | sed 's/#.*//' |
+    awk -v n="$prefix" -v p="linux-$arch" 'NF == 5 && $1 == n && $2 == p { print $5; c++ } END { exit c != 1 }') ||
+    refuse "$lock at $tag does not name one $prefix archive for linux-$arch, so $tag has no $kind archive for this machine"
+[ "$commit" != - ] || refuse "$lock at $tag names no release of $prefix for linux-$arch yet"
+printf '%s\n' "$commit" | grep -qx '[0-9a-f]\{40\}' || refuse "$lock at $tag gives '$commit' for $prefix, which is not a full commit"
+rev=$(printf '%s\n' "$commit" | cut -c1-12)
 name=$prefix-$rev-linux-$arch
 archive=$name.tar.gz
-base=${KOTTON_RELEASE_BASE:-https://github.com/kottonllc/kotton/releases/download}/$tag
+base=${KOTTON_RELEASE_BASE:-https://github.com/kottonllc/kotton-dist/releases/download}/$tag
 signers=infra/release/allowed_signers
 
 if [ -n "$dry_run" ]; then

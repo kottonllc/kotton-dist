@@ -1,0 +1,24 @@
+# The release lock: which version of each archive goes together. A release of this repository,
+# a `v*` tag, ships exactly the archives this file names as the tag holds it, each fetched from
+# its component's own release at the tag named here, and `install.sh` reads this file at the
+# same tag to know which archive to download.
+#
+# One archive per line, five fields separated by blanks; `#` to the end of a line is a note:
+#
+#   name      the archive's name before its commit: `kotton` (the system), `kotton-relay`,
+#             `kotton-vault`, `kotton-host` (the relay and the vault, for one machine)
+#   platform  `linux-x86_64`; the archive's file is `<name>-<commit, 12>-<platform>.tar.gz`
+#   repository  the component repository that builds it and attaches it to its own release
+#   tag       that repository's release tag the archive is fetched from
+#   commit    the full commit the tag names, which the workflow holds the tag to
+#
+# `-` in both tag and commit means the component has not released yet: the lock-versus-workflow
+# check admits it, and the release workflow and `install.sh` both refuse it by name. Every
+# archive the release workflow's ARCHIVES names is here, and nothing else is
+# (tools/check.sh, run by .github/workflows/lint.yml on every pull request).
+#
+# name        platform      repository        tag   commit
+kotton        linux-x86_64  kottonllc/kotton  -     -
+kotton-relay  linux-x86_64  kottonllc/kotton  -     -
+kotton-vault  linux-x86_64  kottonllc/kotton  -     -
+kotton-host   linux-x86_64  kottonllc/kotton  -     -

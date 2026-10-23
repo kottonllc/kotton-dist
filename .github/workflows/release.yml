@@ -1,0 +1,109 @@
+# Publishes a release of the distribution: the archives release.lock names, fetched from each
+# component's own release at the tag the lock names, and one SHA256SUMS over the set, attached
+# to this repository's release for the tag. On a pushed `v*` tag and on nothing else.
+#
+# It builds nothing. Each component repository builds and tags its own archive once and
+# attaches it with its own sums (kotton's is its own .github/workflows/release.yml); this
+# composes: tools/assemble.sh checks each component's tag still names the commit the lock
+# pins, checks each archive against its component's SHA256SUMS, and writes this repository's
+# SHA256SUMS over the set, which is what install.sh checks an archive against.
+#
+# It signs nothing. The owner downloads SHA256SUMS, signs it on their own machine with
+# `ssh-keygen -Y sign -f <key> -n kotton-release SHA256SUMS`, and attaches SHA256SUMS.sig by
+# hand: a key GitHub holds would prove only that GitHub's runner did what the repository said,
+# which is true of every fork. Until the .sig is attached, install.sh installs nothing from the
+# release.
+#
+# ARCHIVES below is what this release ships, and release.lock says which version of each:
+# tools/check.sh (lint.yml, every pull request) and tools/assemble.sh (here, at the tag) both
+# refuse an archive named in one and not the other.
+#
+# Two jobs, and only the second can write. `assemble` reads the tag's tree and fetches from
+# public release pages, holding a read-only token that is not left on disk and that no step is
+# handed. `publish` checks out nothing and runs no script of this repository: it downloads
+# what `assemble` left, checks it against its own sums, and calls `gh` with the one token that
+# can write, which is used for nothing but this repository's release for the tag.
+#
+# Every `uses:` is pinned to a full commit with its version in a trailing comment, the same
+# commits kotton's release workflow resolved on 2026-09-29. Do not move them back to tags: a
+# moved tag runs someone else's code with this job's token.
+#   actions/checkout          11d5960a  -> v4.4.0
+#   actions/upload-artifact   ea165f8d  -> v4.6.2
+#   actions/download-artifact d3f86a10  -> v4.3.0
+
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  assemble:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      ARCHIVES: kotton kotton-relay kotton-vault kotton-host
+      # A component is read with `git ls-remote` and nothing is authenticated: fail at once
+      # rather than wait on a prompt.
+      GIT_TERMINAL_PROMPT: '0'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: The lock and the workflow name the same archives, and every script parses
+        run: sh tools/check.sh
+
+      - name: Fetch each archive the lock names, check it against its component's sums, and write SHA256SUMS
+        run: sh tools/assemble.sh release.lock out/release
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release
+          path: out/release/
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    needs: assemble
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      # The one widening in this file: attaching assets to a release is a contents write.
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: release
+          path: release
+
+      # Attaches to the tag's release, creating it if the owner has not drafted one. Never
+      # --clobber: a name already on the release stays as it is, since SHA256SUMS.sig may
+      # already vouch for it. The files attached are the ones SHA256SUMS names, and SHA256SUMS.
+      - name: Attach the archives and SHA256SUMS to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -eu
+          cd release
+          ls -l
+          sha256sum -c SHA256SUMS
+          files="$(awk '{ print $2 }' SHA256SUMS | tr -d '*' | tr '\n' ' ')SHA256SUMS"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" $files
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --title "$TAG" \
+              --notes "The archives release.lock names at $TAG, each fetched from its component's own release and checked against that release's SHA256SUMS, with one SHA256SUMS over the set. SHA256SUMS.sig is attached by the owner, signed off GitHub; until it is, install.sh installs nothing from this release." \
+              $files
+          fi
